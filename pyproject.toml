@@ -1,0 +1,27 @@
+[project]
+name = "inverse_stochastic"
+version = "0.1.0"
+description = "Codebase associated with paper `Solving Inverse Problems in Stochastic Self-Organising Systems through Invariant Representations`."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "agentpy>=0.1.5",
+    "cma>=4.0.0",
+    "einops>=0.8.1",
+    "gitpython>=3.1.44",
+    "h5py>=3.13.0",
+    "imageio[ffmpeg]>=2.37.0",
+    "matplotlib>=3.10.1",
+    "numba>=0.61.2",
+    "numpy>=2.2.5",
+    "opencv-python>=4.11.0.86",
+    "petname>=2.6",
+    "pillow>=11.2.1",
+    "pretty-errors>=1.2.25",
+    "pyvista>=0.45.0",
+    "scikit-image>=0.25.2",
+    "torch>=2.7.0",
+    "torchvision>=0.22.0",
+    "transformers>=4.51.3",
+    "wandb>=0.19.10",
+]

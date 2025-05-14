@@ -1,0 +1,340 @@
+import os
+import sys
+
+import torch
+import yaml
+
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)  # The magic line that solves the import problems. (Maybe not the best solution and potentially crash something else).
+
+import multiprocessing
+from functools import partial
+from typing import Callable
+
+import matplotlib.pyplot as plt
+import numpy as np
+import psutil
+from matplotlib import pyplot as plt
+from transformers import AutoModel, CLIPImageProcessor, CLIPModel
+import pathlib
+import wandb
+import time
+
+from models.RD.RDBatch4Params import RD_GPU
+from models.Schelling.schelling import run_schelling
+
+from trainers.cmaes import train
+
+from utils.utils import load_image_as_tensor
+from vision_models.clip_run import make_embedding_clip
+from visualisations.visual_tools import make_image
+
+
+def _schelling_worker(want_similar, config):
+    params = {
+        "want_similar": want_similar,
+        "n_groups": 2,
+        "density": 0.9,
+        "size": config["output_grid_size"][0],
+        "max_run_duration": 100,
+    }
+    return run_schelling(params)
+
+
+def run_model_with_population_parameters(population_parameters, config, single_eval=False):
+    population_parameters = np.array(population_parameters)
+    if config["system_name"] == "gray_scott":
+        rd = RD_GPU(
+            param_batch=population_parameters,
+            grid_size=config["output_grid_size"],
+            seed=config["initial_state_seed_type"],
+            seed_radius=config["initial_state_seed_radius"],
+            pad_mode=config["pad_mode"],
+            anisotropic=config["anisotropic"],
+        )
+        last_frame, _ = rd.run(
+            config["update_steps"],
+            save_all=False,
+            show_progress=False,
+            minimax_RD_output=config["minmax_RD_output"],
+        )
+        return last_frame
+
+    elif config["system_name"] == "schelling":
+        population_parameters = population_parameters.flatten()
+        worker = partial(_schelling_worker, config=config)
+        num_cores = psutil.cpu_count(logical=False)
+        with multiprocessing.Pool(num_cores) as pool:
+            results = pool.map(worker, population_parameters)
+
+        assert isinstance(results[0], torch.Tensor)
+        results = torch.stack(results)  # Stack tensors along a new batch dimension
+        return results
+
+
+def compute_fitness(
+    output_batch: np.array,
+    target: np.array,
+    config: dict,
+    processor: Callable = None,
+    model: Callable = None,
+):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if config["target_space"] == "embedding":  # embedding space
+        if config["visual_embedding"] == "clip":
+            embeddings = make_embedding_clip(
+                output_batch.float(),
+                do_rescale=config["do_rescale"],
+                normalise=config["normalise"],
+                processor=processor,
+                model=model,
+                device=device,
+            )
+        else:
+            raise ValueError("visual_embedding must be clip")
+
+        cosine_similarity = np.dot(embeddings, target)
+        loss = 1 - cosine_similarity
+
+    elif config["target_space"] == "pixel":
+        assert target.shape[-1] == 3
+        # loss = torch.mean((output_batch - target) ** 2, axis=(1, 2, 3))
+        loss = loss = torch.mean((output_batch.float() - target.float()) ** 2, axis=(1, 2, 3))
+        loss = torch.sqrt(loss)
+    else:
+        raise ValueError("fitness must be either pixel or embedding")
+    return loss
+
+
+def _make_target(config):
+    # Target image provided
+    if config["target_image_path"] is not None:
+        if config["target_image_path"].endswith(".npy"):
+            raise ValueError("npy files not supported yet, need to return H,W,3 in unit8 0-255")
+
+        # Target image as png
+        elif config["target_image_path"].endswith(".png"):
+            target_image = load_image_as_tensor(
+                config["target_image_path"],
+                resize=None,
+                reverse_image=False,
+                minmax_target_image=False,
+                color=False,
+                swap_channels=True,
+                negative=config["negative"],
+            )
+            assert target_image.shape[-1] == 3, "target image must have 3 channels"
+
+    # Make target image
+    else:
+        if config["system_name"] == "gray_scott":
+            population_params = config["params_gray_scott"]
+        elif config["system_name"] == "schelling":
+            population_params = config["want_similar"]
+        else:
+            raise ValueError("System name not recognized")
+
+        target_image = run_model_with_population_parameters([population_params], config)
+        target_image = (target_image).to(torch.uint8)
+        target_image = target_image[0]
+
+    # plt.imshow(target_image.int())
+    # plt.show()
+    # Save target image
+    pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
+    make_image(
+        target_image,
+        filename="target",
+        folder_path=config["run_folder_path"],
+        system_name=config["system_name"],
+    )
+
+    if config["target_space"] == "embedding":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        target_image = target_image.to(device)
+
+        CLIP_processor = CLIPImageProcessor.from_pretrained(
+            "openai/clip-vit-base-patch32", local_files_only=True
+        )
+        if config["visual_embedding"] == "clip":
+            CLIP_model = CLIPModel.from_pretrained(
+                "openai/clip-vit-base-patch32", local_files_only=True
+            )
+            CLIP_model = CLIP_model.to(device)
+            target_image = make_embedding_clip(
+                images=target_image.float(),
+                do_rescale=config["do_rescale"],
+                normalise=config["normalise"],
+                processor=None if config["custom_embedding_processor"] else CLIP_processor,
+                model=CLIP_model,
+                device=device,
+            )
+
+        else:
+            raise ValueError("visual_embedding must be clip")
+
+        target_image = target_image[0]
+
+    return target_image
+
+
+def save_experiment_data(
+    config,
+    best_solution,
+    best_loss,
+    gen_solutions,
+    gen_losses,
+):
+    np.save(f'{config["run_folder_path"]}/best_solution.npy', np.array(best_solution))
+    np.save(f'{config["run_folder_path"]}/best_loss.npy', np.array(best_loss))
+
+    np.save(f'{config["run_folder_path"]}/gen_solutions.npy', np.array(gen_solutions))
+    np.save(f'{config["run_folder_path"]}/gen_losses.npy', np.array(gen_losses))
+
+    wandb.save(f'{config["run_folder_path"]}/best_solution.npy')
+    wandb.save(f'{config["run_folder_path"]}/best_loss.npy')
+
+
+def plots_and_logs(
+    config,
+    best_solution,
+    best_loss,
+    gen_solutions,
+    gen_losses,
+    best_last_gen_sol,
+    best_last_gen_loss,
+):
+
+    system_name = config["system_name"]
+    run_folder = config["run_folder_path"]
+    last_frame = run_model_with_population_parameters([best_solution], config, single_eval=True)
+    make_image(
+        last_frame, "best_historical_solution", folder_path=run_folder, system_name=system_name
+    )
+
+    last_frame = run_model_with_population_parameters([best_last_gen_sol], config, single_eval=True)
+    make_image(last_frame, "best_lastgen_solution", folder_path=run_folder, system_name=system_name)
+
+    # Log image(s)
+    target_image = plt.imread(f"{run_folder}/target.png")
+    best_historical_solution = plt.imread(f"{run_folder}/best_historical_solution.png")
+    best_lastgen_solution = plt.imread(f"{run_folder}/best_lastgen_solution.png")
+
+    log_dict = {
+        "Target": [wandb.Image(target_image, caption="target")],
+        "Result Hist": [wandb.Image(best_historical_solution, caption=config["target_space"])],
+        "Result Last": [wandb.Image(best_lastgen_solution, caption=config["target_space"])],
+        "Video": [],
+        "Grid": [],
+    }
+
+    video_path = f"{run_folder}/best_solution.mp4"
+    if os.path.isfile(video_path):
+        log_dict["Video"].append(wandb.Video(video_path, caption=config["target_space"]))
+
+    grid_path = f"{run_folder}/unique_solutions_grid.png"
+    if os.path.isfile(grid_path):
+        log_dict["Grid"].append(wandb.Image(grid_path, caption=f"Grid of target"))
+
+    wandb.log(log_dict)
+
+
+def optimize_parameters_cmaes(config):
+    # Generate target
+    target = _make_target(config)
+    # Train
+    (
+        best_historical_solution,
+        best_historical_loss,
+        gen_solutions,
+        gen_losses,
+        best_last_gen_sol,
+        best_last_gen_loss,
+        # ath_solutions,
+        # ath_losses,
+    ) = train(config, target, run_model_with_population_parameters)
+
+    # Save results
+    save_experiment_data(
+        config,
+        best_historical_solution,
+        best_historical_loss,
+        gen_solutions,
+        gen_losses,
+        # best_last_gen_sol,
+        # best_last_gen_loss,
+    )
+
+    # Evaluate best solution and save output
+    plots_and_logs(
+        config,
+        best_historical_solution,
+        best_historical_loss,
+        gen_solutions,
+        gen_losses,
+        best_last_gen_sol,
+        best_last_gen_loss,
+    )
+
+
+if __name__ == "__main__":
+    import wandb
+
+    wandb.init(mode="disabled")
+
+    config_RD = {
+        "system_name": "gray_scott",
+        "search_space": "parameters",
+        "params_gray_scott": [0.5406, 0.3045, 0.0277, 0.0543],
+        "output_grid_size": [100, 100],
+        "initial_state_seed_type": "random_thin_stripes",
+        "initial_state_seed_radius": 5,
+        "target_image_path": None,
+        "lower_bounds": [0, 0, 0, 0],
+        "upper_bounds": [1, 1, 0.5, 0.5],
+        "pad_mode": "circular",
+    }
+
+    config_schelling = {
+        "system_name": "schelling",
+        "search_space": "parameters",
+        "want_similar": 0.5,
+        "output_grid_size": [100, 100],
+        "initial_state_seed_type": "random",
+        "initial_state_seed_radius": 5,
+        "lower_bounds": [0, 0, 0, 0],
+        "target_image_path": None,
+        "lower_bounds": [0],
+        "upper_bounds": [1],
+        "pad_mode": "circular",
+    }
+
+    config_shared = {
+        "update_steps": 100,
+        "target_space": "embedding",  # pixel, embedding
+        "popsize": 32,
+        "generations": 5,
+        "sigma_init": 1,
+        "run_folder_path": "test",
+        "anisotropic": False,
+        "minmax_RD_output": False,
+        "minmax_target_image": False,
+        "early_stop": None,  # [15, 0.04],
+        "disable_cma_bounds": False,
+        "negative": True,
+        "custom_embedding_processor": True,
+        "do_rescale": False,  # needed
+        "normalise": False,  # works either way
+    }
+
+    config = {**config_shared, **config_RD}
+    # config = {**config_shared, **config_schelling}
+
+    # use pathlib to create experiment folder
+    pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
+    # save config as YAML
+    with open(f"{config['run_folder_path']}/config.yaml", "w") as f:
+        yaml.dump(config, f)
+
+    optimize_parameters_cmaes(config)

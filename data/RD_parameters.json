@@ -1,0 +1,110 @@
+[
+  {
+    "key_name": 0,
+    "initial_state_seed_type": "random",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [1.0, 0.1, 0.028, 0.062],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 1,
+    "initial_state_seed_type": "random",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [0.8, 0.25, 0.03, 0.065],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 2,
+    "initial_state_seed_type": "random",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [0.955216, 0.158981, 0.041567, 0.063682],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 3,
+    "initial_state_seed_type": "random",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 4,
+    "initial_state_seed_type": "random_thin_stripes",
+    "initial_state_seed_radius": 5,
+    "params_gray_scott": [0.97904, 0.24993, 0.039302, 0.059738],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "constant"
+  },
+  {
+    "key_name": 5,
+    "initial_state_seed_type": "random_cross",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [0.5678, 0.3027, 0.0836, 0.0581],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 6,
+    "initial_state_seed_type": "random_circle_small",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [1.0, 0.5, 0.055, 0.062],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "constant"
+  },
+  {
+    "key_name": 7,
+    "initial_state_seed_type": "random_triangle",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [0.9838, 0.4, 0.0722, 0.061],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 8,
+    "initial_state_seed_type": "random_triangle",
+    "initial_state_seed_radius": 10,
+    "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "circular"
+  },
+  {
+    "key_name": 9,
+    "initial_state_seed_type": "random_triangle",
+    "initial_state_seed_radius": 5,
+    "params_gray_scott": [0.97904, 0.24993, 0.039302, 0.059738],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "constant"
+  },
+  {
+    "key_name": 10,
+    "initial_state_seed_type": "random_square",
+    "initial_state_seed_radius": 5,
+    "params_gray_scott": [0.97904, 0.24993, 0.039302, 0.059738],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "constant"
+  },
+  {
+    "key_name": 11,
+    "initial_state_seed_type": "random_triangle",
+    "initial_state_seed_radius": 5,
+    "params_gray_scott": [0.955216, 0.158981, 0.041567, 0.063682],
+    "output_grid_size": [100, 100],
+    "update_steps": 1000,
+    "pad_mode": "constant"
+  }
+]
