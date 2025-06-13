@@ -1,6 +1,6 @@
 # Inverse Stochastic
 
-Anonymised codebase for `Solving Inverse Problems in Stochastic Self-Organising Systems through Invariant Representations` paper submission. The codebase contains:
+Codebase for `Solving Inverse Problems in Stochastic Self-Organising Systems through Invariant Representations` paper. The codebase contains:
 
 **Main directories:**
 - `src/models/`: Models for reaction-diffusion and Schelling systems.
