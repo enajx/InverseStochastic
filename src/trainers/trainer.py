@@ -283,16 +283,24 @@ if __name__ == "__main__":
 
     wandb.init(mode="disabled")
 
+    config_blastocyst = {
+        "system_name": "blastocyst",
+        "search_space": "parameters",
+        "params_blastocyst": [1.0, 0.343817, 0.052043, 0.063162],
+        "output_grid_size": [64, 64],
+        "initial_state_seed_type": "random",
+    }
+
     config_RD = {
         "system_name": "gray_scott",
         "search_space": "parameters",
-        "params_gray_scott": [0.5406, 0.3045, 0.0277, 0.0543],
-        "output_grid_size": [100, 100],
-        "initial_state_seed_type": "random_thin_stripes",
-        "initial_state_seed_radius": 5,
+        "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
+        "output_grid_size": [64, 64],
+        "initial_state_seed_type": "random",
+        "initial_state_seed_radius": 10,
         "target_image_path": None,
         "lower_bounds": [0, 0, 0, 0],
-        "upper_bounds": [1, 1, 0.5, 0.5],
+        "upper_bounds": [1, 1, 0.1, 0.1],
         "pad_mode": "circular",
     }
 
@@ -307,25 +315,26 @@ if __name__ == "__main__":
         "target_image_path": None,
         "lower_bounds": [0],
         "upper_bounds": [1],
-        "pad_mode": "circular",
+        "pad_mode": "zeros",
     }
 
     config_shared = {
-        "update_steps": 100,
+        "update_steps": 500,
         "target_space": "embedding",  # pixel, embedding
-        "popsize": 32,
-        "generations": 5,
-        "sigma_init": 1,
+        "popsize": 128,
+        "generations": 30,
+        "sigma_init": 0.25,
         "run_folder_path": "test",
         "anisotropic": False,
         "minmax_RD_output": False,
         "minmax_target_image": False,
         "early_stop": None,  # [15, 0.04],
         "disable_cma_bounds": False,
-        "negative": True,
+        "negative": False,
         "custom_embedding_processor": True,
-        "do_rescale": False,  # needed
+        "do_rescale": True,  # needed
         "normalise": False,  # works either way
+        "visual_embedding": "clip",
     }
 
     config = {**config_shared, **config_RD}
