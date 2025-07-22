@@ -1,16 +1,10 @@
-# For further optimization check:
-# - https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html
-# - https://pytorch.org/docs/main/jit.html
-
 import os
 import sys
 
 from scipy.ndimage import zoom
 
 # ad this folder to path
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)  # The magic line that solves the import problems. (Maybe not the best solution and potentially crash something else). #FIX
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import imageio
 import matplotlib.pyplot as plt

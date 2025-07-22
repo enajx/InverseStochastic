@@ -55,6 +55,9 @@ def train(
 
     elif config["system_name"] == "schelling":
         nb_parameters = 1
+
+    elif config["system_name"] == "blastocyst":
+        nb_parameters = len(config["params_blastocyst"])
     else:
         raise ValueError("system_name must be either gray_scott or schelling")
 

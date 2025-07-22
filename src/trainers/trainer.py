@@ -4,10 +4,11 @@ import sys
 import torch
 import yaml
 
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)  # The magic line that solves the import problems. (Maybe not the best solution and potentially crash something else).
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import shutil
+from pathlib import Path
 import multiprocessing
 from functools import partial
 from typing import Callable
@@ -23,6 +24,7 @@ import time
 
 from models.RD.RDBatch4Params import RD_GPU
 from models.Schelling.schelling import run_schelling
+from models.Blastocyst.blastocyst import run_morpheus_blastocyst, read_png
 
 from trainers.cmaes import train
 
@@ -42,7 +44,7 @@ def _schelling_worker(want_similar, config):
     return run_schelling(params)
 
 
-def run_model_with_population_parameters(population_parameters, config, single_eval=False):
+def run_model_with_population_parameters(population_parameters, config):
     population_parameters = np.array(population_parameters)
     if config["system_name"] == "gray_scott":
         rd = RD_GPU(
@@ -71,6 +73,24 @@ def run_model_with_population_parameters(population_parameters, config, single_e
         assert isinstance(results[0], torch.Tensor)
         results = torch.stack(results)  # Stack tensors along a new batch dimension
         return results
+
+    elif config["system_name"] == "blastocyst":
+        target_images = []
+        for i, param in enumerate(population_parameters):
+            run_morpheus_blastocyst(
+                params=param,
+                xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
+                outdir=f"{config["run_folder_path"]}/temp/current_population/{i}",
+                param_keys=list(config["params_blastocyst"].keys()),
+            )
+            target_image = read_png(
+                f"{config['run_folder_path']}/temp/current_population/{i}", last=True
+            )
+            target_images.append(target_image)
+
+        shutil.rmtree(Path(f"{config['run_folder_path']}/temp/current_population"))
+
+        return torch.stack(target_images)
 
 
 def compute_fitness(
@@ -115,15 +135,23 @@ def _make_target(config):
 
         # Target image as png
         elif config["target_image_path"].endswith(".png"):
-            target_image = load_image_as_tensor(
-                config["target_image_path"],
-                resize=None,
-                reverse_image=False,
-                minmax_target_image=False,
-                color=False,
-                swap_channels=True,
-                negative=config["negative"],
-            )
+            if (
+                config["system_name"] == "reaction_diffusion"
+                or config["system_name"] == "schelling"
+            ):
+                target_image = load_image_as_tensor(
+                    config["target_image_path"],
+                    resize=None,
+                    reverse_image=False,
+                    minmax_target_image=False,
+                    color=False,
+                    swap_channels=True,
+                    negative=config["negative"],
+                )
+            elif config["system_name"] == "blastocyst":
+                target_image = read_png(config["target_image_path"])
+            else:
+                raise ValueError("System name not recognized")
             assert target_image.shape[-1] == 3, "target image must have 3 channels"
 
     # Make target image
@@ -132,15 +160,25 @@ def _make_target(config):
             population_params = config["params_gray_scott"]
         elif config["system_name"] == "schelling":
             population_params = config["want_similar"]
+        elif config["system_name"] == "blastocyst":
+            population_params = config["params_blastocyst"]
         else:
             raise ValueError("System name not recognized")
 
-        target_image = run_model_with_population_parameters([population_params], config)
-        target_image = (target_image).to(torch.uint8)
-        target_image = target_image[0]
+        if config["system_name"] == "gray_scott" or config["system_name"] == "schelling":
+            target_image = run_model_with_population_parameters([population_params], config)
+            target_image = (target_image).to(torch.uint8)
+            target_image = target_image[0]
+        elif config["system_name"] == "blastocyst":
+            run_morpheus_blastocyst(
+                params=population_params,
+                xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
+                outdir=f"{config['run_folder_path']}/temp/target_pattern",
+            )
+            target_image = read_png(f"{config['run_folder_path']}/temp/target_pattern", last=True)
+        else:
+            raise ValueError("System name not recognized")
 
-    # plt.imshow(target_image.int())
-    # plt.show()
     # Save target image
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
     make_image(
@@ -208,13 +246,21 @@ def plots_and_logs(
 
     system_name = config["system_name"]
     run_folder = config["run_folder_path"]
-    last_frame = run_model_with_population_parameters([best_solution], config, single_eval=True)
+    last_frame = run_model_with_population_parameters([best_solution], config)
     make_image(
-        last_frame, "best_historical_solution", folder_path=run_folder, system_name=system_name
+        last_frame.squeeze(),
+        "best_historical_solution",
+        folder_path=run_folder,
+        system_name=system_name,
     )
 
-    last_frame = run_model_with_population_parameters([best_last_gen_sol], config, single_eval=True)
-    make_image(last_frame, "best_lastgen_solution", folder_path=run_folder, system_name=system_name)
+    last_frame = run_model_with_population_parameters([best_last_gen_sol], config)
+    make_image(
+        last_frame.squeeze(),
+        "best_lastgen_solution",
+        folder_path=run_folder,
+        system_name=system_name,
+    )
 
     # Log image(s)
     target_image = plt.imread(f"{run_folder}/target.png")
@@ -241,8 +287,10 @@ def plots_and_logs(
 
 
 def optimize_parameters_cmaes(config):
+
     # Generate target
     target = _make_target(config)
+
     # Train
     (
         best_historical_solution,
@@ -286,9 +334,18 @@ if __name__ == "__main__":
     config_blastocyst = {
         "system_name": "blastocyst",
         "search_space": "parameters",
-        "params_blastocyst": [1.0, 0.343817, 0.052043, 0.063162],
-        "output_grid_size": [64, 64],
-        "initial_state_seed_type": "random",
+        "params_blastocyst": {
+            "vsg1": 1.202,
+            "vsg2": 1,
+            # "vsn1": 0.856,
+            # "vsn2": 1,
+            # "vsfr1": 2.8,
+            # "vsfr2": 2.8,
+        },
+        "target_image_path": "test_blastocyst/plot_03000.png",
+        # "target_image_path": None, #!
+        "lower_bounds": [1, 1],
+        "upper_bounds": [1.5, 1.5],
     }
 
     config_RD = {
@@ -321,10 +378,10 @@ if __name__ == "__main__":
     config_shared = {
         "update_steps": 500,
         "target_space": "embedding",  # pixel, embedding
-        "popsize": 128,
-        "generations": 30,
+        "popsize": 4,
+        "generations": 2,
         "sigma_init": 0.25,
-        "run_folder_path": "test",
+        "run_folder_path": "test_blastocyst",
         "anisotropic": False,
         "minmax_RD_output": False,
         "minmax_target_image": False,
@@ -337,8 +394,9 @@ if __name__ == "__main__":
         "visual_embedding": "clip",
     }
 
-    config = {**config_shared, **config_RD}
+    # config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
+    config = {**config_shared, **config_blastocyst}
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
