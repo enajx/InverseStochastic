@@ -120,8 +120,8 @@ Variable c2 saves the time when the 32 stage is reached.</Annotation>
     </Space>
     <Time>
         <StartTime value="0"/>
-        <StopTime value="200"/> # HACK
-        <!-- <StopTime value="3000"/> -->
+        <!-- <StopTime value="200"/> # For quick testing -->
+        <StopTime value="3000"/>
         <RandomSeed value="0"/>
         <TimeSymbol symbol="time"/>
     </Time>

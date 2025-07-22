@@ -337,15 +337,15 @@ if __name__ == "__main__":
         "params_blastocyst": {
             "vsg1": 1.202,
             "vsg2": 1,
-            # "vsn1": 0.856,
-            # "vsn2": 1,
-            # "vsfr1": 2.8,
-            # "vsfr2": 2.8,
+            "vsn1": 0.856,
+            "vsn2": 1,
+            "vsfr1": 2.8,
+            "vsfr2": 2.8,
         },
         "target_image_path": "test_blastocyst/plot_03000.png",
         # "target_image_path": None, #!
-        "lower_bounds": [1, 1],
-        "upper_bounds": [1.5, 1.5],
+        "lower_bounds": [0, 0, 0, 0, 0, 0],
+        "upper_bounds": [2, 2, 2, 2, 2, 2],
     }
 
     config_RD = {
@@ -379,8 +379,8 @@ if __name__ == "__main__":
         "update_steps": 500,
         "target_space": "embedding",  # pixel, embedding
         "popsize": 4,
-        "generations": 2,
-        "sigma_init": 0.25,
+        "generations": 4,
+        "sigma_init": 0.1,
         "run_folder_path": "test_blastocyst",
         "anisotropic": False,
         "minmax_RD_output": False,
