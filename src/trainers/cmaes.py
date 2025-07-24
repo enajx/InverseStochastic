@@ -140,7 +140,7 @@ def train(
                 and restarts < max_restarts
             ):
                 print(
-                    f"\nRestarting optimization at generation {gen}. Best loss so far: {best_loss_so_far:.4f}"
+                    f"\nRestarting optimization at generation {gen}. Best loss so far: {best_loss_so_far:.6f}"
                 )
                 print(f"Target early stop value: {early_stop_value}. Restarts so far: {restarts}\n")
 
@@ -219,7 +219,7 @@ def train(
 
             # display(es)
             print(
-                f"\nGen: {gen} | Historical best - {best_solution_so_far} : {best_loss_so_far:.4f} || Generation best: {gen_best_solution} : {gen_best_loss:.4f} "
+                f"\nGen: {gen} | Historical best - {best_solution_so_far} : {best_loss_so_far:.6f} || Generation best: {gen_best_solution} : {gen_best_loss:.6f} "
             )
 
             # check is wandb is enabled
@@ -262,8 +262,8 @@ def train(
     best_last_gen_sol = gen_best_solution
     best_last_gen_loss = gen_best_loss
 
-    print(f"\n\nBest historical: {best_historical_solution} | Loss: {best_historical_loss:.4f}")
-    print(f"Best last gen  : {best_last_gen_sol} | Loss: {best_last_gen_loss:.4f}")
+    print(f"\n\nBest historical: {best_historical_solution} | Loss: {best_historical_loss:.6f}")
+    print(f"Best last gen  : {best_last_gen_sol} | Loss: {best_last_gen_loss:.6f}")
 
     if config["system_name"] == "gray_scott":
         print(f"\nTarget parameter: {config["params_gray_scott"]}")

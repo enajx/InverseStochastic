@@ -32,6 +32,8 @@ from utils.utils import load_image_as_tensor
 from vision_models.clip_run import make_embedding_clip
 from visualisations.visual_tools import make_image
 
+from trainers.domain_losses import *
+
 
 def _schelling_worker(want_similar, config):
     params = {
@@ -93,6 +95,7 @@ def run_model_with_population_parameters(population_parameters, config):
         return torch.stack(target_images)
 
 
+
 def compute_fitness(
     output_batch: np.array,
     target: np.array,
@@ -120,8 +123,62 @@ def compute_fitness(
     elif config["target_space"] == "pixel":
         assert target.shape[-1] == 3
         # loss = torch.mean((output_batch - target) ** 2, axis=(1, 2, 3))
-        loss = loss = torch.mean((output_batch.float() - target.float()) ** 2, axis=(1, 2, 3))
+        loss = torch.mean((output_batch.float() - target.float()) ** 2, axis=(1, 2, 3))
         loss = torch.sqrt(loss)
+
+    # RD-specific losses
+    elif config["target_space"] == "spectral_entropy":  # Spectral entropy loss
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.abs(spectral_entropy(out_spec) - spectral_entropy(tgt_spec))
+
+    elif config["target_space"] == "dominant_wavelength":  # Dominant wavelength loss
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.abs(dominant_wavelength(out_spec) - dominant_wavelength(tgt_spec))
+
+    elif config["target_space"] == "spectral_radial":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.sqrt(torch.mean((out_spec - tgt_spec) ** 2, dim=1))
+
+    # Schelling-specific losses
+    elif config["target_space"] == "dissimilarity_index":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(
+            compute_dissimilarity_index(out_lbl) - compute_dissimilarity_index(tgt_lbl)
+        )
+
+    elif config["target_space"] == "boundary_length":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(
+            compute_boundary_length(out_lbl) - compute_boundary_length(tgt_lbl)
+        )
+
+    elif config["target_space"] == "average_cluster_size":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(
+            compute_average_cluster_size(out_lbl) - compute_average_cluster_size(tgt_lbl)
+        )
+
+    elif config["target_space"] == "moran_I":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(
+            compute_moran_I(out_lbl) - compute_moran_I(tgt_lbl)
+        )
+
     else:
         raise ValueError("fitness must be either pixel or embedding")
     return loss
@@ -326,6 +383,7 @@ def optimize_parameters_cmaes(config):
     )
 
 
+
 if __name__ == "__main__":
     import wandb
 
@@ -352,8 +410,9 @@ if __name__ == "__main__":
         "system_name": "gray_scott",
         "search_space": "parameters",
         "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
-        "output_grid_size": [64, 64],
-        "initial_state_seed_type": "random",
+        "output_grid_size": [100, 100],
+        "initial_state_seed_type": "random", 
+        # "initial_state_seed_type": "circle", 
         "initial_state_seed_radius": 10,
         "target_image_path": None,
         "lower_bounds": [0, 0, 0, 0],
@@ -364,10 +423,10 @@ if __name__ == "__main__":
     config_schelling = {
         "system_name": "schelling",
         "search_space": "parameters",
-        "want_similar": 0.5,
+        "want_similar": 0.9,
         "output_grid_size": [100, 100],
-        "initial_state_seed_type": "random",
-        "initial_state_seed_radius": 5,
+        "initial_state_seed_type": None,
+        "initial_state_seed_radius": None,
         "lower_bounds": [0, 0, 0, 0],
         "target_image_path": None,
         "lower_bounds": [0],
@@ -377,11 +436,20 @@ if __name__ == "__main__":
 
     config_shared = {
         "update_steps": 500,
-        "target_space": "embedding",  # pixel, embedding
+        # "target_space": "pixel",  
+        # "target_space": "embedding", 
+        # RD-specific losses
+        # "target_space": "spectral_entropy",  
+        # "target_space": "dominant_wavelength",  
+        # "target_space": "spectral_radial",  
+        # Schelling-specific losses
+        "target_space": "dissimilarity_index", # works well with schelling
+        # "target_space": "boundary_length",
+        # "target_space": "average_cluster_size",
+        # "target_space": "moran_I",
         "popsize": 64,
         "generations": 32,
         "sigma_init": 0.25,
-        "run_folder_path": "test_RD",
         "anisotropic": False,
         "minmax_RD_output": False,
         "minmax_target_image": False,
@@ -394,9 +462,12 @@ if __name__ == "__main__":
         "visual_embedding": "clip",
     }
 
+
     config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
     # config = {**config_shared, **config_blastocyst}
+
+    config['run_folder_path'] = f"test_{config['system_name']}_{config['target_space']}"
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)

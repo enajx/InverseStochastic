@@ -29,7 +29,4 @@ src/experiments/exp olds/**
 visuals_paper/
 _archive/
 !data/RD_parameters.json
-test_blastocyst/*
-test_schelling/*
-test_gray_scott/*
-test_RD/*
+test_*/*
