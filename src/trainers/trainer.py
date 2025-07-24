@@ -378,10 +378,10 @@ if __name__ == "__main__":
     config_shared = {
         "update_steps": 500,
         "target_space": "embedding",  # pixel, embedding
-        "popsize": 4,
-        "generations": 4,
-        "sigma_init": 0.1,
-        "run_folder_path": "test_blastocyst",
+        "popsize": 64,
+        "generations": 32,
+        "sigma_init": 0.25,
+        "run_folder_path": "test_RD",
         "anisotropic": False,
         "minmax_RD_output": False,
         "minmax_target_image": False,
@@ -394,9 +394,9 @@ if __name__ == "__main__":
         "visual_embedding": "clip",
     }
 
-    # config = {**config_shared, **config_RD}
+    config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
-    config = {**config_shared, **config_blastocyst}
+    # config = {**config_shared, **config_blastocyst}
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
