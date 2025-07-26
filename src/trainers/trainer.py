@@ -191,9 +191,10 @@ def compute_fitness(
         # broadcast target across the batch dimension
         # loss shape: [B]
 
-        wave = "haar"
-        level = 4
-        loss = frechet_wavelet_distance(output_batch, target, wave, level)
+        wave = config["fwd_wave"]
+        level = config["fwd_level"]
+        log = config["fwd_log"]
+        loss = frechet_wavelet_distance(output_batch, target, wave, level, log)
 
     # Schelling-specific losses
     elif config["target_space"] == "dissimilarity_index":
@@ -489,6 +490,9 @@ if __name__ == "__main__":
         # "target_space": "distance_transform",
         # "target_space": "orientation_variance",
         "target_space": "fwd",
+        "fwd_wave": "haar",
+        "fwd_level": 2,
+        "fwd_log": True,
         # Schelling-specific losses
         # "target_space": "dissimilarity_index",  # works well with schelling and fails on RD
         # "target_space": "boundary_length",

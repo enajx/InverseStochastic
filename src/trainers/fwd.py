@@ -5,7 +5,7 @@ import numpy as np
 from scipy import linalg
 
 
-def _wp_feats(img, wave="haar", level=4, log=True):
+def _wp_feats(img, wave, level, log):
     """Wavelet-packet features for one image tensor [C,H,W] → 1-D vector."""
     packets = ptwt.WaveletPacket2D(img, pywt.Wavelet(wave), maxlevel=level)
     vec = [
@@ -43,36 +43,87 @@ def _frechet(mu1, s1, mu2, s2, eps=1e-6):
     return (diff.dot(diff) + torch.trace(s1 + s2 - 2 * covmean)).item()
 
 
-def frechet_wavelet_distance(output_batch, target, wave="haar", level=4, log=True):
+# def frechet_wavelet_distance(output_batch, target, wave, level, log):
+#     """
+#     Per-sample Fréchet Wavelet Distance.
+#     Args
+#     ----
+#     output_batch : tensor [B,H,W,C]   – generated images
+#     target       : tensor [H,W,C]     – reference image
+#     Returns
+#     -------
+#     Tensor [B]   – one FWD value per image in the batch
+#     """
+#     # broadcast target
+#     if target.dim() == 3:
+#         target = target.unsqueeze(0).expand(output_batch.shape[0], *target.shape)
+
+#     # NHWC → NCHW, float64 for numeric stability
+#     gen = output_batch.permute(0, 3, 1, 2).to(torch.float64)
+#     real = target.permute(0, 3, 1, 2).to(torch.float64)
+
+#     # extract features
+#     feats_gen = [_wp_feats(img, wave, level, log) for img in gen]
+#     feat_t = _wp_feats(real[0], wave, level, log)  # single target vector
+
+#     # zero covariance for single-sample “distribution”
+#     zeros = torch.zeros((feat_t.numel(), feat_t.numel()), dtype=feat_t.dtype, device=feat_t.device)
+
+#     # compute per-image FWD
+#     losses = torch.tensor(
+#         [_frechet(f, zeros, feat_t, zeros) for f in feats_gen],
+#         dtype=feat_t.dtype,
+#         device=feat_t.device,
+#     )
+#     return losses
+
+
+def frechet_wavelet_distance(output_batch, target, wave, level, log):
     """
-    Per-sample Fréchet Wavelet Distance.
+    Fréchet Wavelet Distance (FWD).
+    Supports:
+    - Per-sample: target shape [H, W, C]
+    - Batch-to-batch: target shape [B, H, W, C]
+
     Args
     ----
-    output_batch : tensor [B,H,W,C]   – generated images
-    target       : tensor [H,W,C]     – reference image
+    output_batch : tensor [B, H, W, C] – generated images
+    target       : tensor [H, W, C] or [B, H, W, C] – real images
     Returns
     -------
-    Tensor [B]   – one FWD value per image in the batch
+    Tensor [B] if per-sample mode, else scalar
     """
-    # broadcast target
-    if target.dim() == 3:
-        target = target.unsqueeze(0).expand(output_batch.shape[0], *target.shape)
-
-    # NHWC → NCHW, float64 for numeric stability
     gen = output_batch.permute(0, 3, 1, 2).to(torch.float64)
-    real = target.permute(0, 3, 1, 2).to(torch.float64)
 
-    # extract features
-    feats_gen = [_wp_feats(img, wave, level, log) for img in gen]
-    feat_t = _wp_feats(real[0], wave, level, log)  # single target vector
+    if target.dim() == 3:
+        # Pairwise mode
+        real = (
+            target.unsqueeze(0)
+            .expand(gen.shape[0], *target.shape)
+            .permute(0, 3, 1, 2)
+            .to(torch.float64)
+        )
+        feats_gen = [_wp_feats(img, wave, level, log) for img in gen]
+        feat_t = _wp_feats(real[0], wave, level, log)
 
-    # zero covariance for single-sample “distribution”
-    zeros = torch.zeros((feat_t.numel(), feat_t.numel()), dtype=feat_t.dtype, device=feat_t.device)
-
-    # compute per-image FWD
-    losses = torch.tensor(
-        [_frechet(f, zeros, feat_t, zeros) for f in feats_gen],
-        dtype=feat_t.dtype,
-        device=feat_t.device,
-    )
-    return losses
+        zeros = torch.zeros(
+            (feat_t.numel(), feat_t.numel()), dtype=feat_t.dtype, device=feat_t.device
+        )
+        losses = torch.tensor(
+            [_frechet(f, zeros, feat_t, zeros) for f in feats_gen],
+            dtype=feat_t.dtype,
+            device=feat_t.device,
+        )
+        return losses
+    else:
+        # Batch-to-batch mode
+        real = target.permute(0, 3, 1, 2).to(torch.float64)
+        feats_gen = torch.stack([_wp_feats(img, wave, level, log) for img in gen])
+        feats_real = torch.stack([_wp_feats(img, wave, level, log) for img in real])
+        mu_gen, cov_gen = _mean_cov(feats_gen)
+        mu_real, cov_real = _mean_cov(feats_real)
+        return torch.tensor(
+            _frechet(mu_gen, cov_gen, mu_real, cov_real),
+            dtype=mu_gen.dtype,
+            device=mu_gen.device,
+        )
