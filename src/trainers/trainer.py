@@ -517,7 +517,7 @@ if __name__ == "__main__":
     # config = {**config_shared, **config_schelling}
     # config = {**config_shared, **config_blastocyst}
 
-    config["run_folder_path"] = f"test_{config['system_name']}_{config['target_space']}"
+    config["run_folder_path"] = f"tests/test_{config['system_name']}_{config['target_space']}"
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)

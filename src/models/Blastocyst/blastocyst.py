@@ -85,11 +85,11 @@ if __name__ == "__main__":
         "dcm": 0.0,
     }
 
-    # run_morpheus_blastocyst(
-    #     params=params,
-    #     xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
-    #     outdir="temp_blastocyst",
-    # )
+    run_morpheus_blastocyst(
+        params=params,
+        xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
+        outdir="temp_blastocyst",
+    )
 
     img = read_image("temp_blastocyst/plot_03000.png")
     img = resize(img, [224, 224])
