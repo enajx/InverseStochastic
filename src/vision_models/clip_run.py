@@ -19,7 +19,6 @@ def make_embedding_clip(
     device: str,
 ) -> np.array:
 
-
     if processor is not None:
         inputs = processor(images=images, return_tensors="pt", do_rescale=do_rescale)
     elif images.shape[-1] == 3 and len(images.shape) == 3:
@@ -41,9 +40,9 @@ def make_embedding_clip(
 
     inputs = inputs.to(device)
 
-    if do_rescale:        
+    if do_rescale:
         inputs = inputs / 255
-    
+
     if normalise:
         if inputs.max() > 1:
             raise ValueError("Images have to be in range (0,1) if to be normalised")
@@ -129,7 +128,8 @@ if __name__ == "__main__":
     )
 
     # Load the image
-    image_path = "data/image.png"
+    image_path = "blastocyst_instances/3000_5.png"
+    # image_path = "data/image.png"
     image = Image.open(image_path)
 
     # Convert image to numpy array

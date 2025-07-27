@@ -30,3 +30,5 @@ visuals_paper/
 _archive/
 !data/RD_parameters.json
 test_*/*
+tests/*
+temp_*/*
