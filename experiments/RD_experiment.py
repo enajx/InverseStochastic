@@ -31,7 +31,6 @@ if __name__ == "__main__":
         "sigma_init": 0.25,
         "do_rescale": True,
         "normalise": False,
-        "custom_embedding_processor": True,
     }
 
     EARLY_STOPS = [[15, 0.04]]

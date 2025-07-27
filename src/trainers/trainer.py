@@ -99,8 +99,8 @@ def compute_fitness(
     output_batch: np.array,
     target: np.array,
     config: dict,
-    processor: Callable = None,
-    model: Callable = None,
+    processor: Callable,
+    model: Callable,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if config["target_space"] == "embedding":  # embedding space
@@ -108,7 +108,6 @@ def compute_fitness(
             embeddings = make_embedding_clip(
                 output_batch.float(),
                 do_rescale=config["do_rescale"],
-                normalise=config["normalise"],
                 processor=processor,
                 model=model,
                 device=device,
@@ -300,10 +299,9 @@ def _make_target(config):
             )
             CLIP_model = CLIP_model.to(device)
             target_image = make_embedding_clip(
-                images=target_image.float(),
+                images=target_image,
                 do_rescale=config["do_rescale"],
-                normalise=config["normalise"],
-                processor=None if config["custom_embedding_processor"] else CLIP_processor,
+                processor=CLIP_processor,
                 model=CLIP_model,
                 device=device,
             )
@@ -478,7 +476,8 @@ if __name__ == "__main__":
     config_shared = {
         "update_steps": 500,
         # "target_space": "pixel",
-        # "target_space": "embedding",
+        "target_space": "embedding",
+        "visual_embedding": "clip",
         # RD-specific losses
         # "target_space": "spectral_entropy",
         # "target_space": "dominant_wavelength",
@@ -489,7 +488,7 @@ if __name__ == "__main__":
         # "target_space": "skeleton_difference",
         # "target_space": "distance_transform",
         # "target_space": "orientation_variance",
-        "target_space": "fwd",
+        # "target_space": "fwd",
         "fwd_wave": "haar",
         "fwd_level": 2,
         "fwd_log": True,
@@ -500,18 +499,16 @@ if __name__ == "__main__":
         # "target_space": "moran_I",
         "popsize": 64,
         "generations": 32,
-        "sigma_init": 0.1,
+        "sigma_init": 0.25,
         "anisotropic": False,
         "minmax_RD_output": False,
         "minmax_target_image": False,
         "early_stop": None,  # [15, 0.04],
         "disable_cma_bounds": False,
         "negative": False,
-        "custom_embedding_processor": True,
         "do_rescale": True,  # needed
-        "normalise": False,  # works either way
-        "visual_embedding": "clip",
     }
+
 
     config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}

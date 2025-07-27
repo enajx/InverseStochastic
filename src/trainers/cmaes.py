@@ -173,14 +173,7 @@ def train(
                 output_batch=output,
                 target=target,
                 config=config,
-                processor=(
-                    None
-                    if (
-                        config["custom_embedding_processor"]
-                        or config["target_space"] != "embedding"
-                    )
-                    else CLIP_processor
-                ),
+                processor=CLIP_processor if config["target_space"] == "embedding" else None,
                 model=embedding_model if config["target_space"] == "embedding" else None,
             )
 
