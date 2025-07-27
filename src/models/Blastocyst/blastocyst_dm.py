@@ -53,9 +53,9 @@ def plot_distance_matrix(distance_matrix, images, output_path):
 
 if __name__ == "__main__":
 
-    embedding_model = "clip"
+    # embedding_model = "clip"
     # embedding_model = "nomic"
-    # embedding_model = "fwd"
+    embedding_model = "fwd"
     fwd_wave = "haar"
     fwd_level = 2
     fwd_log = True
@@ -79,6 +79,9 @@ if __name__ == "__main__":
 
     # Resize images to 224x224
     images = [image.resize((224, 224)) for image in images]
+
+    # convert images to RGB
+    # images = [image.convert("RGB") for image in images]
 
     # Convert images to numpy arrays
     images = [np.array(image) for image in images]
@@ -157,5 +160,7 @@ if __name__ == "__main__":
         embedding_model = f"{embedding_model}_{fwd_wave}_{fwd_level}_{fwd_log}"
     os.makedirs(f"temp/{embedding_model}", exist_ok=True)
     plot_distance_matrix(
-        distance_matrix, images, f"temp/{embedding_model}/blastocyst_dm_{clean_folder_name}.png"
+        distance_matrix,
+        images,
+        f"blastocyst_dm/{embedding_model}/blastocyst_dm_{clean_folder_name}.png",
     )
