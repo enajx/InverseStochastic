@@ -6,7 +6,6 @@ import yaml
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-
 import shutil
 from pathlib import Path
 import multiprocessing
@@ -424,9 +423,8 @@ def optimize_parameters_cmaes(config):
 
 
 if __name__ == "__main__":
-    import wandb
 
-    wandb.init(mode="disabled")
+
 
     config_blastocyst = {
         "system_name": "blastocyst",
@@ -439,10 +437,10 @@ if __name__ == "__main__":
             "vsfr1": 2.8,
             "vsfr2": 2.8,
         },
-        "target_image_path": "test_blastocyst/plot_03000.png",
+        "target_image_path": "data/blastocyst_instances/3000/3000_1.png",
         # "target_image_path": None, #!
-        "lower_bounds": [0, 0, 0, 0, 0, 0],
-        "upper_bounds": [2, 2, 2, 2, 2, 2],
+        "lower_bounds": [0.75, 0.5, 0.3, 0.5, 2.3, 2.3],
+        "upper_bounds": [1.75, 1.5, 1.3, 1.5, 3.3, 3.3],
     }
 
     config_RD = {
@@ -502,8 +500,8 @@ if __name__ == "__main__":
         #
         "update_steps": 1000,
         "visual_embedding": "clip",
-        "popsize": 64,
-        "generations": 32,
+        "popsize": 4,
+        "generations": 3,
         "sigma_init": 0.25,
         "anisotropic": False,
         "minmax_RD_output": False,
@@ -511,13 +509,31 @@ if __name__ == "__main__":
         "early_stop": None,  # [15, 0.04],
         "disable_cma_bounds": False,
         "negative": False,
-        "do_rescale": True,  # needed
+        "wandb_mode": "online",
+        # "run_name": "test",
+        "entity": "enajx",
     }
 
 
-    config = {**config_shared, **config_RD}
+    # config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
-    # config = {**config_shared, **config_blastocyst}
+    config = {**config_shared, **config_blastocyst}
+
+    wandb.init(mode=config["wandb_mode"])
+
+    if config["wandb_mode"] == "online":
+        wandb.init(
+            project=f"Inverse_{config["system_name"]}",
+            config=config,
+            reinit=True,
+            allow_val_change=True,
+            mode=config["wandb_mode"],
+            # name=N,
+            entity=config["entity"],
+            resume="allow",
+            # id=id_,
+        )
+        # wandb.save(config)
 
     config["run_folder_path"] = f"tests/test_{config['system_name']}_{config['target_space']}"
 

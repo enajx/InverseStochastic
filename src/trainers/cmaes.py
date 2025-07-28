@@ -232,6 +232,7 @@ def train(
                     wandb.log({f"param_{i}": val for i, val in enumerate(best_solution_so_far)})
             gen += 1
 
+
         # Allows to interrupt optimation with Ctrl+C
         except KeyboardInterrupt:  # Only works with python mp
             print("\n" + 20 * "*")
