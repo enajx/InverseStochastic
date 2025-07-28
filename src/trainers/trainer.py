@@ -326,8 +326,10 @@ def save_experiment_data(
     np.save(f'{config["run_folder_path"]}/gen_solutions.npy', np.array(gen_solutions))
     np.save(f'{config["run_folder_path"]}/gen_losses.npy', np.array(gen_losses))
 
-    wandb.save(f'{config["run_folder_path"]}/best_solution.npy')
-    wandb.save(f'{config["run_folder_path"]}/best_loss.npy')
+    if config["wandb_mode"] == "online":
+
+        wandb.save(f'{config["run_folder_path"]}/best_solution.npy')
+        wandb.save(f'{config["run_folder_path"]}/best_loss.npy')
 
 
 def plots_and_logs(
@@ -424,8 +426,6 @@ def optimize_parameters_cmaes(config):
 
 if __name__ == "__main__":
 
-
-
     config_blastocyst = {
         "system_name": "blastocyst",
         "search_space": "parameters",
@@ -452,7 +452,6 @@ if __name__ == "__main__":
         # "initial_state_seed_type": "random",
         "params_gray_scott": [0.8, 0.25, 0.03, 0.065],
         "initial_state_seed_type": "random",
-
         "output_grid_size": [100, 100],
         "initial_state_seed_radius": 10,
         "target_image_path": None,
@@ -477,7 +476,7 @@ if __name__ == "__main__":
 
     config_shared = {
         # "target_space": "pixel",
-        # "target_space": "embedding",
+        "target_space": "embedding",
         # RD-specific losses
         # "target_space": "spectral_entropy",
         # "target_space": "dominant_wavelength",
@@ -488,7 +487,7 @@ if __name__ == "__main__":
         # "target_space": "skeleton_difference",
         # "target_space": "distance_transform",
         # "target_space": "orientation_variance",
-        "target_space": "fwd",
+        # "target_space": "fwd",
         "fwd_wave": "haar",
         "fwd_level": 2,
         "fwd_log": True,
@@ -500,8 +499,8 @@ if __name__ == "__main__":
         #
         "update_steps": 1000,
         "visual_embedding": "clip",
-        "popsize": 4,
-        "generations": 3,
+        "popsize": 3,
+        "generations": 4,
         "sigma_init": 0.25,
         "anisotropic": False,
         "minmax_RD_output": False,
@@ -509,12 +508,13 @@ if __name__ == "__main__":
         "early_stop": None,  # [15, 0.04],
         "disable_cma_bounds": False,
         "negative": False,
+        "do_rescale": True,
         "wandb_mode": "online",
+        # "wandb_mode": "offline",
         # "run_name": "test",
         "entity": "enajx",
         "save_path": "tests",
     }
-
 
     # config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
@@ -529,14 +529,16 @@ if __name__ == "__main__":
             entity=config["entity"],
         )
 
-    config["run_folder_path"] = f"{config['save_path']}/test_{config['system_name']}_{config['target_space']}"
+    config["run_folder_path"] = (
+        f"{config['save_path']}/test_{config['system_name']}_{config['target_space']}"
+    )
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
     # save config as YAML
     with open(f"{config['run_folder_path']}/config.yaml", "w") as f:
         yaml.dump(config, f)
-    
+
     # Save config file to wandb
     if config["wandb_mode"] == "online":
         wandb.save(f"{config['run_folder_path']}/config.yaml")
