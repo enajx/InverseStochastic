@@ -448,10 +448,14 @@ if __name__ == "__main__":
     config_RD = {
         "system_name": "gray_scott",
         "search_space": "parameters",
-        "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
-        "output_grid_size": [100, 100],
+        # "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
+        # "initial_state_seed_type": "random",
+        # "params_gray_scott": [1.0, 0.1, 0.028, 0.062],
+        # "initial_state_seed_type": "random",
+        "params_gray_scott": [0.8, 0.25, 0.03, 0.065],
         "initial_state_seed_type": "random",
-        # "initial_state_seed_type": "circle",
+
+        "output_grid_size": [100, 100],
         "initial_state_seed_radius": 10,
         "target_image_path": None,
         "lower_bounds": [0, 0, 0, 0],
@@ -474,10 +478,8 @@ if __name__ == "__main__":
     }
 
     config_shared = {
-        "update_steps": 500,
         # "target_space": "pixel",
-        "target_space": "embedding",
-        "visual_embedding": "clip",
+        # "target_space": "embedding",
         # RD-specific losses
         # "target_space": "spectral_entropy",
         # "target_space": "dominant_wavelength",
@@ -488,7 +490,7 @@ if __name__ == "__main__":
         # "target_space": "skeleton_difference",
         # "target_space": "distance_transform",
         # "target_space": "orientation_variance",
-        # "target_space": "fwd",
+        "target_space": "fwd",
         "fwd_wave": "haar",
         "fwd_level": 2,
         "fwd_log": True,
@@ -497,6 +499,9 @@ if __name__ == "__main__":
         # "target_space": "boundary_length",
         # "target_space": "average_cluster_size",
         # "target_space": "moran_I",
+        #
+        "update_steps": 1000,
+        "visual_embedding": "clip",
         "popsize": 64,
         "generations": 32,
         "sigma_init": 0.25,

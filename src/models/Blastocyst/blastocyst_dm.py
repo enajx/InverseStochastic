@@ -67,12 +67,14 @@ if __name__ == "__main__":
     # folder_path = "blastocyst_instances/1500/"
     # folder_path = "blastocyst_instances/2000/"
     # folder_path = "blastocyst_instances/3000/"
+    # folder_path = "flowers"
 
     images = []
     for root, dirs, files in os.walk(folder_path):
         dirs.sort(key=lambda x: int(x))
         print(root)
         images.extend(os.path.join(root, f) for f in files if f.endswith(".png"))
+        # images.extend(os.path.join(root, f) for f in files if f.endswith(".jpg"))
 
     # Load all images
     images = [Image.open(f) for f in images]
@@ -141,7 +143,7 @@ if __name__ == "__main__":
 
         # Convert images to tensors
         images = [torch.tensor(image) for image in images]
-        images = torch.stack(images)
+        images = torch.stack(images).float() / 255.0
 
         # Compute FWD distance between all images pairs
         distance_matrix = np.zeros((len(images), len(images)))
@@ -162,5 +164,5 @@ if __name__ == "__main__":
     plot_distance_matrix(
         distance_matrix,
         images,
-        f"blastocyst_dm/{embedding_model}/blastocyst_dm_{clean_folder_name}.png",
+        f"temp/{embedding_model}/blastocyst_dm_{clean_folder_name}.png",
     )
