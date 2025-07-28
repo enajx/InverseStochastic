@@ -512,7 +512,7 @@ if __name__ == "__main__":
         "wandb_mode": "online",
         # "run_name": "test",
         "entity": "enajx",
-        "save_path": "tests/",
+        "save_path": "tests",
     }
 
 
@@ -520,21 +520,14 @@ if __name__ == "__main__":
     # config = {**config_shared, **config_schelling}
     config = {**config_shared, **config_blastocyst}
 
-    wandb.init(mode=config["wandb_mode"])
-
     if config["wandb_mode"] == "online":
         wandb.init(
             project=f"Inverse_{config["system_name"]}",
             config=config,
-            reinit=True,
             allow_val_change=True,
             mode=config["wandb_mode"],
-            # name=N,
             entity=config["entity"],
-            resume="allow",
-            # id=id_,
         )
-        # wandb.save(config)
 
     config["run_folder_path"] = f"{config['save_path']}/test_{config['system_name']}_{config['target_space']}"
 
@@ -543,6 +536,10 @@ if __name__ == "__main__":
     # save config as YAML
     with open(f"{config['run_folder_path']}/config.yaml", "w") as f:
         yaml.dump(config, f)
+    
+    # Save config file to wandb
+    if config["wandb_mode"] == "online":
+        wandb.save(f"{config['run_folder_path']}/config.yaml")
 
     optimize_parameters_cmaes(config)
 
