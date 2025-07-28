@@ -512,6 +512,7 @@ if __name__ == "__main__":
         "wandb_mode": "online",
         # "run_name": "test",
         "entity": "enajx",
+        "save_path": "tests/",
     }
 
 
@@ -535,7 +536,7 @@ if __name__ == "__main__":
         )
         # wandb.save(config)
 
-    config["run_folder_path"] = f"tests/test_{config['system_name']}_{config['target_space']}"
+    config["run_folder_path"] = f"{config['save_path']}/test_{config['system_name']}_{config['target_space']}"
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
