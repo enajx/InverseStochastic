@@ -29,6 +29,8 @@ def _mean_cov(mat):
 def _frechet(mu1, s1, mu2, s2, eps=1e-6):
     diff = mu1 - mu2
 
+    # print(f"Wavelet coefficients dimension: {diff.shape}")
+
     # --- NEW: handle zero-covariance case fast ---
     if torch.count_nonzero(s1) == 0 and torch.count_nonzero(s2) == 0:
         return diff.dot(diff).item()  # Σ terms vanish

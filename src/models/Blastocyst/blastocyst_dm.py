@@ -61,17 +61,19 @@ if __name__ == "__main__":
     fwd_log = True
 
     # Load all png images in folder path
-    folder_path = "blastocyst_instances/"
-    # folder_path = "blastocyst_instances/500/"
-    # folder_path = "blastocyst_instances/1000/"
-    # folder_path = "blastocyst_instances/1500/"
-    # folder_path = "blastocyst_instances/2000/"
-    # folder_path = "blastocyst_instances/3000/"
-    # folder_path = "flowers"
+    folder_path = "data/blastocyst_noise/"
+    # folder_path = "data/blastocyst_instances/"
+    # folder_path = "data/blastocyst_instances/500/"
+    # folder_path = "data/blastocyst_instances/1000/"
+    # folder_path = "data/blastocyst_instances/1500/"
+    # folder_path = "data/blastocyst_instances/2000/"
+    # folder_path = "data/blastocyst_instances/3000/"
+    # folder_path = "data/flowers"
 
     images = []
     for root, dirs, files in os.walk(folder_path):
-        dirs.sort(key=lambda x: int(x))
+        dirs.sort(key=lambda x: float(x))
+        # dirs.sort(key=lambda x: int(x))
         print(root)
         images.extend(os.path.join(root, f) for f in files if f.endswith(".png"))
         # images.extend(os.path.join(root, f) for f in files if f.endswith(".jpg"))
@@ -114,6 +116,7 @@ if __name__ == "__main__":
         # Compute cosine similarity between all images pairs
         distance_matrix = 1 - np.dot(image_embeddings, image_embeddings.T)
 
+        print(f"Embedding size: {image_embeddings.shape}")
         print(f"Distance matrix shape: {distance_matrix.shape}")
 
     elif embedding_model == "nomic":
@@ -139,6 +142,9 @@ if __name__ == "__main__":
 
         distance_matrix = 1 - np.dot(image_embeddings, image_embeddings.T)
 
+        print(f"Embedding size: {image_embeddings.shape}")
+        print(f"Distance matrix shape: {distance_matrix.shape}")
+
     elif embedding_model == "fwd":
 
         # Convert images to tensors
@@ -152,6 +158,7 @@ if __name__ == "__main__":
                 images, image, fwd_wave, fwd_level, fwd_log
             )
             distance_matrix[i, :] = pairwise_distance.cpu().numpy()
+
 
         print(f"Distance matrix shape: {distance_matrix.shape}")
 
