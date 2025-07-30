@@ -20,6 +20,7 @@ from transformers import AutoModel, CLIPImageProcessor, CLIPModel
 import pathlib
 import wandb
 import time
+from datetime import datetime
 
 from models.RD.RDBatch4Params import RD_GPU
 from models.Schelling.schelling import run_schelling
@@ -476,7 +477,7 @@ if __name__ == "__main__":
 
     config_shared = {
         # "target_space": "pixel",
-        "target_space": "embedding",
+        # "target_space": "embedding",
         # RD-specific losses
         # "target_space": "spectral_entropy",
         # "target_space": "dominant_wavelength",
@@ -487,7 +488,7 @@ if __name__ == "__main__":
         # "target_space": "skeleton_difference",
         # "target_space": "distance_transform",
         # "target_space": "orientation_variance",
-        # "target_space": "fwd",
+        "target_space": "fwd",
         "fwd_wave": "haar",
         "fwd_level": 2,
         "fwd_log": True,
@@ -499,7 +500,7 @@ if __name__ == "__main__":
         #
         "update_steps": 1000,
         "visual_embedding": "clip",
-        "popsize": 3,
+        "popsize": 4,
         "generations": 4,
         "sigma_init": 0.25,
         "anisotropic": False,
@@ -509,18 +510,23 @@ if __name__ == "__main__":
         "disable_cma_bounds": False,
         "negative": False,
         "do_rescale": True,
-        "wandb_mode": "online",
-        # "wandb_mode": "offline",
+        # "wandb_mode": "online",
+        "wandb_mode": "offline",
         # "run_name": "test",
         "entity": "enajx",
-        "save_path": "tests",
     }
+    # config_shared["save_path"] = (
+    #     f"experiments_blastocyst_{config_shared['target_space']}_{time.time()}"
+    # )
+    config_shared["save_path"] = (
+        f"experiments_blastocyst/{config_shared['target_space']}/{datetime.now().strftime('%m-%d-%H-%M-%S')}"
+    )
 
     # config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
     config = {**config_shared, **config_blastocyst}
 
-    if config["wandb_mode"] == "online":
+    if config["wandb_mode"] != "disabled":
         wandb.init(
             project=f"Inverse_{config['system_name']}",
             config=config,
@@ -540,7 +546,7 @@ if __name__ == "__main__":
         yaml.dump(config, f)
 
     # Save config file to wandb
-    if config["wandb_mode"] == "online":
+    if config["wandb_mode"] != "disabled":
         wandb.save(f"{config['run_folder_path']}/config.yaml")
 
     optimize_parameters_cmaes(config)
