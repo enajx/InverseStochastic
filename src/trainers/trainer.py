@@ -81,7 +81,7 @@ def run_model_with_population_parameters(population_parameters, config):
             run_morpheus_blastocyst(
                 params=param,
                 xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
-                outdir=f"{config["run_folder_path"]}/temp/current_population/{i}",
+                outdir=f"{config['run_folder_path']}/temp/current_population/{i}",
                 param_keys=list(config["params_blastocyst"].keys()),
             )
             target_image = read_png(
@@ -522,7 +522,7 @@ if __name__ == "__main__":
 
     if config["wandb_mode"] == "online":
         wandb.init(
-            project=f"Inverse_{config["system_name"]}",
+            project=f"Inverse_{config['system_name']}",
             config=config,
             allow_val_change=True,
             mode=config["wandb_mode"],
