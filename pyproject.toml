@@ -15,6 +15,7 @@ dependencies = [
     "numba>=0.61.2",
     "numpy>=2.2.5",
     "opencv-python>=4.11.0.86",
+    "pandas>=2.2.3",
     "petname>=2.6",
     "pillow>=11.2.1",
     "pretty-errors>=1.2.25",
