@@ -536,7 +536,7 @@ if __name__ == "__main__":
     experiment_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     experiment_base_path = experiment_base_path + "/" + experiment_id
 
-    n_samples = 5
+    n_samples = 3
     std_sample = 0.1
     original_params = params.copy()
     metrics_data = []
@@ -631,12 +631,17 @@ if __name__ == "__main__":
 
     # Show detailed breakdown by metric type - MEAN
     print("\nBreakdown by metric (MEAN):")
-    print(mean_pivot_table)
+    # order table by decreasing clip_cosine
+    print(mean_pivot_table.sort_values(by="clip_cosine", ascending=False))
 
     # Show detailed breakdown by metric type - STD
     print("\nBreakdown by metric (STD):")
-    print(std_pivot_table)
+    print(std_pivot_table.sort_values(by="clip_cosine", ascending=False))
 
     # Save pivot tables to csv
-    mean_pivot_table.to_csv(Path(experiment_base_path) / "mean_pivot_table.csv", index=True)
-    std_pivot_table.to_csv(Path(experiment_base_path) / "std_pivot_table.csv", index=True)
+    mean_pivot_table.sort_values(by="clip_cosine", ascending=False).to_csv(
+        Path(experiment_base_path) / "mean_pivot_table.csv", index=True
+    )
+    std_pivot_table.sort_values(by="clip_cosine", ascending=False).to_csv(
+        Path(experiment_base_path) / "std_pivot_table.csv", index=True
+    )
