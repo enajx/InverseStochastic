@@ -567,6 +567,20 @@ if __name__ == "__main__":
 
         # Compute metrics for all simulations of this parameter
         images_distances = compute_metrics_wrt_reference(reference_image, run_dir)
+        # clip_cosine_distances = []
+        # pixel_mae_distances = []
+        # frechet_wavelet_distances = []
+        # for reference_image in reference_images:
+        #     images_distances_ = compute_metrics_wrt_reference(reference_image, run_dir)
+        #     clip_cosine_distances.append(np.mean(images_distances_["clip_cosine"]))
+        #     pixel_mae_distances.append(np.mean(images_distances_["pixel_mae"]))
+        #     frechet_wavelet_distances.append(np.mean(images_distances_["frechet_wavelet"]))
+
+        # images_distances = {
+        #     "clip_cosine": clip_cosine_distances,
+        #     "pixel_mae": pixel_mae_distances,
+        #     "frechet_wavelet": frechet_wavelet_distances,
+        # }
 
         # Map results back to parameter values
         for i, value in enumerate(sampled_values):
