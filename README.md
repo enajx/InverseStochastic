@@ -43,6 +43,20 @@ python experiments/SH_experiment.py
 
 Results will be saved in the `experiments_results/SH/` directory.
 
+### Running Blastocyst Experiments
+
+Running the blastocyst experiment requires installing [Morpheus](https://morpheus.gitlab.io) and setting up the environment as per the instructions on their site.
+
+The to run the blastocyst model experiment:
+
+```bash
+python src/trainers/trainer.py
+```
+
+defining the experiment configuration as `config = {**config_shared, **config_blastocyst}`.
+
+Results will be saved in the `experiments_blastocyst/` directory.
+
 ---
 
 ### Running specific targets
