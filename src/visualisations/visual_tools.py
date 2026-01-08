@@ -17,40 +17,51 @@ np.set_printoptions(threshold=sys.maxsize)
 torch.set_printoptions(threshold=sys.maxsize)
 
 
+
 def make_image(frame: np.ndarray, filename: str, folder_path=None, system_name=None) -> None:
     if torch.is_tensor(frame):
         frame = frame.detach().cpu().numpy()
 
-    if frame.ndim == 4 and frame.shape[0] == 1:
-        frame = frame[0]
+    if system_name == "gray_scott" or system_name == "schelling":
+        if frame.ndim == 4 and frame.shape[0] == 1:
+            frame = frame[0]
 
     assert np.min(frame) >= 0, "Negative values detected in data array."
     assert np.max(frame) <= 255, "Values above 255 detected in data array."
     assert frame.shape[-1] == 3, "Expected RGB image with shape [..., 3]"
 
-    # Check if all channels are (approximately) the same
-    is_grayscale = np.allclose(frame[..., 0], frame[..., 1], atol=1e-3) and np.allclose(
-        frame[..., 1], frame[..., 2], atol=1e-3
-    )
+    if system_name == "gray_scott" or system_name == "schelling":
+        # Check if all channels are (approximately) the same
+        is_grayscale = np.allclose(frame[..., 0], frame[..., 1], atol=1e-3) and np.allclose(
+            frame[..., 1], frame[..., 2], atol=1e-3
+        )
 
-    cmap = "jet"
-    # plt.figure(figsize=(4, 4))
-    # plt.imshow(frame[..., -1], cmap=cmap)
-    # plt.axis("off")
-    # plt.savefig(f"{folder_path}/{filename}.png", format="png", bbox_inches="tight")
-    # plt.close()
-    plt.figure(figsize=(2.24, 2.24), dpi=100)
-    plt.imshow(frame[..., -1], cmap=cmap)
-    plt.axis("off")
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    plt.savefig(
-        f"{folder_path}/{filename}.png",
-        format="png",
-        bbox_inches="tight",
-        pad_inches=0,
-        transparent=True,
-    )
-    plt.close()
+        plt.figure(figsize=(2.24, 2.24), dpi=100)
+        plt.imshow(frame[..., -1], cmap="jet")
+        plt.axis("off")
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        plt.savefig(
+            f"{folder_path}/{filename}.png",
+            format="png",
+            bbox_inches="tight",
+            pad_inches=0,
+            transparent=True,
+        )
+        plt.close()
+
+    elif system_name == "blastocyst":
+        plt.figure(figsize=(2.24, 2.24), dpi=100)
+        plt.imshow(frame, cmap=None)
+        plt.axis("off")
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        plt.savefig(
+            f"{folder_path}/{filename}.png",
+            format="png",
+            bbox_inches="tight",
+            pad_inches=0,
+            transparent=True,
+        )
+        plt.close()
 
 
 def make_video(

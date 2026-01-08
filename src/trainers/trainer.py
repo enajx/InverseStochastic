@@ -4,10 +4,10 @@ import sys
 import torch
 import yaml
 
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)  # The magic line that solves the import problems. (Maybe not the best solution and potentially crash something else).
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import shutil
+from pathlib import Path
 import multiprocessing
 from functools import partial
 from typing import Callable
@@ -20,15 +20,19 @@ from transformers import AutoModel, CLIPImageProcessor, CLIPModel
 import pathlib
 import wandb
 import time
+from datetime import datetime
 
 from models.RD.RDBatch4Params import RD_GPU
 from models.Schelling.schelling import run_schelling
+from models.Blastocyst.blastocyst import run_morpheus_blastocyst, read_png
 
 from trainers.cmaes import train
 
 from utils.utils import load_image_as_tensor
 from vision_models.clip_run import make_embedding_clip
 from visualisations.visual_tools import make_image
+
+from trainers.domain_losses import *
 
 
 def _schelling_worker(want_similar, config):
@@ -42,7 +46,7 @@ def _schelling_worker(want_similar, config):
     return run_schelling(params)
 
 
-def run_model_with_population_parameters(population_parameters, config, single_eval=False):
+def run_model_with_population_parameters(population_parameters, config):
     population_parameters = np.array(population_parameters)
     if config["system_name"] == "gray_scott":
         rd = RD_GPU(
@@ -72,13 +76,31 @@ def run_model_with_population_parameters(population_parameters, config, single_e
         results = torch.stack(results)  # Stack tensors along a new batch dimension
         return results
 
+    elif config["system_name"] == "blastocyst":
+        target_images = []
+        for i, param in enumerate(population_parameters):
+            run_morpheus_blastocyst(
+                params=param,
+                xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
+                outdir=f"{config['run_folder_path']}/temp/current_population/{i}",
+                param_keys=list(config["params_blastocyst"].keys()),
+            )
+            target_image = read_png(
+                f"{config['run_folder_path']}/temp/current_population/{i}", last=True
+            )
+            target_images.append(target_image)
+
+        shutil.rmtree(Path(f"{config['run_folder_path']}/temp/current_population"))
+
+        return torch.stack(target_images)
+
 
 def compute_fitness(
     output_batch: np.array,
     target: np.array,
     config: dict,
-    processor: Callable = None,
-    model: Callable = None,
+    processor: Callable,
+    model: Callable,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if config["target_space"] == "embedding":  # embedding space
@@ -86,7 +108,6 @@ def compute_fitness(
             embeddings = make_embedding_clip(
                 output_batch.float(),
                 do_rescale=config["do_rescale"],
-                normalise=config["normalise"],
                 processor=processor,
                 model=model,
                 device=device,
@@ -100,8 +121,105 @@ def compute_fitness(
     elif config["target_space"] == "pixel":
         assert target.shape[-1] == 3
         # loss = torch.mean((output_batch - target) ** 2, axis=(1, 2, 3))
-        loss = loss = torch.mean((output_batch.float() - target.float()) ** 2, axis=(1, 2, 3))
+        loss = torch.mean((output_batch.float() - target.float()) ** 2, axis=(1, 2, 3))
         loss = torch.sqrt(loss)
+
+    # RD-specific losses
+    elif config["target_space"] == "spectral_entropy":  # Spectral entropy loss
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.abs(spectral_entropy(out_spec) - spectral_entropy(tgt_spec))
+
+    elif config["target_space"] == "dominant_wavelength":  # Dominant wavelength loss
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.abs(dominant_wavelength(out_spec) - dominant_wavelength(tgt_spec))
+
+    elif config["target_space"] == "spectral_radial":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.sqrt(torch.mean((out_spec - tgt_spec) ** 2, dim=1))
+
+    elif config["target_space"] == "edge_density":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+        loss = torch.abs(edge_density(out_gray) - edge_density(tgt_gray))
+
+    elif config["target_space"] == "local_contrast":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+        loss = torch.abs(local_contrast(out_gray) - local_contrast(tgt_gray))
+
+    elif config["target_space"] == "frequency_band_energy":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(output_batch.shape[0], -1, -1)
+        out_spec = compute_radial_power_spectrum(out_gray)
+        tgt_spec = compute_radial_power_spectrum(tgt_gray)
+        loss = torch.abs(band_energy(out_spec) - band_energy(tgt_spec))
+
+    elif config["target_space"] == "skeleton_difference":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(out_gray.shape[0], -1, -1)
+        loss = skeleton_difference(out_gray, tgt_gray)
+
+    elif config["target_space"] == "distance_transform":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(out_gray.shape[0], -1, -1)
+        loss = distance_transform_loss(out_gray, tgt_gray)
+
+    elif config["target_space"] == "orientation_variance":
+        out_gray = to_grayscale(output_batch)
+        tgt_gray = to_grayscale(target).unsqueeze(0).expand(out_gray.shape[0], -1, -1)
+        loss = torch.abs(
+            local_orientation_variance(out_gray) - local_orientation_variance(tgt_gray)
+        )
+
+    elif config["target_space"] == "fwd":
+
+        from fwd import frechet_wavelet_distance
+
+        # output_batch: [B, H, W, C], target: [H, W, C]
+        # broadcast target across the batch dimension
+        # loss shape: [B]
+
+        wave = config["fwd_wave"]
+        level = config["fwd_level"]
+        log = config["fwd_log"]
+        loss = frechet_wavelet_distance(output_batch, target, wave, level, log)
+
+    # Schelling-specific losses
+    elif config["target_space"] == "dissimilarity_index":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(
+            compute_dissimilarity_index(out_lbl) - compute_dissimilarity_index(tgt_lbl)
+        )
+
+    elif config["target_space"] == "boundary_length":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(compute_boundary_length(out_lbl) - compute_boundary_length(tgt_lbl))
+
+    elif config["target_space"] == "average_cluster_size":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(
+            compute_average_cluster_size(out_lbl) - compute_average_cluster_size(tgt_lbl)
+        )
+
+    elif config["target_space"] == "moran_I":
+        out_lbl = rgb_to_label(output_batch)
+        tgt_lbl = rgb_to_label(target.unsqueeze(0).expand(output_batch.shape[0], -1, -1, -1))
+        loss = torch.abs(compute_moran_I(out_lbl) - compute_moran_I(tgt_lbl))
+
     else:
         raise ValueError("fitness must be either pixel or embedding")
     return loss
@@ -115,15 +233,23 @@ def _make_target(config):
 
         # Target image as png
         elif config["target_image_path"].endswith(".png"):
-            target_image = load_image_as_tensor(
-                config["target_image_path"],
-                resize=None,
-                reverse_image=False,
-                minmax_target_image=False,
-                color=False,
-                swap_channels=True,
-                negative=config["negative"],
-            )
+            if (
+                config["system_name"] == "reaction_diffusion"
+                or config["system_name"] == "schelling"
+            ):
+                target_image = load_image_as_tensor(
+                    config["target_image_path"],
+                    resize=None,
+                    reverse_image=False,
+                    minmax_target_image=False,
+                    color=False,
+                    swap_channels=True,
+                    negative=config["negative"],
+                )
+            elif config["system_name"] == "blastocyst":
+                target_image = read_png(config["target_image_path"])
+            else:
+                raise ValueError("System name not recognized")
             assert target_image.shape[-1] == 3, "target image must have 3 channels"
 
     # Make target image
@@ -132,15 +258,25 @@ def _make_target(config):
             population_params = config["params_gray_scott"]
         elif config["system_name"] == "schelling":
             population_params = config["want_similar"]
+        elif config["system_name"] == "blastocyst":
+            population_params = config["params_blastocyst"]
         else:
             raise ValueError("System name not recognized")
 
-        target_image = run_model_with_population_parameters([population_params], config)
-        target_image = (target_image).to(torch.uint8)
-        target_image = target_image[0]
+        if config["system_name"] == "gray_scott" or config["system_name"] == "schelling":
+            target_image = run_model_with_population_parameters([population_params], config)
+            target_image = (target_image).to(torch.uint8)
+            target_image = target_image[0]
+        elif config["system_name"] == "blastocyst":
+            run_morpheus_blastocyst(
+                params=population_params,
+                xml_path="src/models/Blastocyst/Mammalian_Embryo_Development.xml",
+                outdir=f"{config['run_folder_path']}/temp/target_pattern",
+            )
+            target_image = read_png(f"{config['run_folder_path']}/temp/target_pattern", last=True)
+        else:
+            raise ValueError("System name not recognized")
 
-    # plt.imshow(target_image.int())
-    # plt.show()
     # Save target image
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
     make_image(
@@ -163,10 +299,9 @@ def _make_target(config):
             )
             CLIP_model = CLIP_model.to(device)
             target_image = make_embedding_clip(
-                images=target_image.float(),
+                images=target_image,
                 do_rescale=config["do_rescale"],
-                normalise=config["normalise"],
-                processor=None if config["custom_embedding_processor"] else CLIP_processor,
+                processor=CLIP_processor,
                 model=CLIP_model,
                 device=device,
             )
@@ -192,8 +327,10 @@ def save_experiment_data(
     np.save(f'{config["run_folder_path"]}/gen_solutions.npy', np.array(gen_solutions))
     np.save(f'{config["run_folder_path"]}/gen_losses.npy', np.array(gen_losses))
 
-    wandb.save(f'{config["run_folder_path"]}/best_solution.npy')
-    wandb.save(f'{config["run_folder_path"]}/best_loss.npy')
+    if config["wandb_mode"] == "online":
+
+        wandb.save(f'{config["run_folder_path"]}/best_solution.npy')
+        wandb.save(f'{config["run_folder_path"]}/best_loss.npy')
 
 
 def plots_and_logs(
@@ -208,13 +345,21 @@ def plots_and_logs(
 
     system_name = config["system_name"]
     run_folder = config["run_folder_path"]
-    last_frame = run_model_with_population_parameters([best_solution], config, single_eval=True)
+    last_frame = run_model_with_population_parameters([best_solution], config)
     make_image(
-        last_frame, "best_historical_solution", folder_path=run_folder, system_name=system_name
+        last_frame.squeeze(),
+        "best_historical_solution",
+        folder_path=run_folder,
+        system_name=system_name,
     )
 
-    last_frame = run_model_with_population_parameters([best_last_gen_sol], config, single_eval=True)
-    make_image(last_frame, "best_lastgen_solution", folder_path=run_folder, system_name=system_name)
+    last_frame = run_model_with_population_parameters([best_last_gen_sol], config)
+    make_image(
+        last_frame.squeeze(),
+        "best_lastgen_solution",
+        folder_path=run_folder,
+        system_name=system_name,
+    )
 
     # Log image(s)
     target_image = plt.imread(f"{run_folder}/target.png")
@@ -241,8 +386,10 @@ def plots_and_logs(
 
 
 def optimize_parameters_cmaes(config):
+
     # Generate target
     target = _make_target(config)
+
     # Train
     (
         best_historical_solution,
@@ -279,57 +426,118 @@ def optimize_parameters_cmaes(config):
 
 
 if __name__ == "__main__":
-    import wandb
 
-    wandb.init(mode="disabled")
+    config_blastocyst = {
+        "system_name": "blastocyst",
+        "search_space": "parameters",
+        "params_blastocyst": {
+            "vsg1": 1.202,
+            "vsg2": 1,
+            "vsn1": 0.856,
+            "vsn2": 1,
+            "vsfr1": 2.8,
+            "vsfr2": 2.8,
+        },
+        "target_image_path": "data/blastocyst_instances/3000/3000_1.png",
+        # "target_image_path": None, #!
+        "lower_bounds": [0.75, 0.5, 0.3, 0.5, 2.3, 2.3],
+        "upper_bounds": [1.75, 1.5, 1.3, 1.5, 3.3, 3.3],
+    }
 
     config_RD = {
         "system_name": "gray_scott",
         "search_space": "parameters",
-        "params_gray_scott": [0.5406, 0.3045, 0.0277, 0.0543],
+        # "params_gray_scott": [1.0, 0.343817, 0.052043, 0.063162],
+        # "initial_state_seed_type": "random",
+        # "params_gray_scott": [1.0, 0.1, 0.028, 0.062],
+        # "initial_state_seed_type": "random",
+        "params_gray_scott": [0.8, 0.25, 0.03, 0.065],
+        "initial_state_seed_type": "random",
         "output_grid_size": [100, 100],
-        "initial_state_seed_type": "random_thin_stripes",
-        "initial_state_seed_radius": 5,
+        "initial_state_seed_radius": 10,
         "target_image_path": None,
         "lower_bounds": [0, 0, 0, 0],
-        "upper_bounds": [1, 1, 0.5, 0.5],
+        "upper_bounds": [1, 1, 0.1, 0.1],
         "pad_mode": "circular",
     }
 
     config_schelling = {
         "system_name": "schelling",
         "search_space": "parameters",
-        "want_similar": 0.5,
+        "want_similar": 0.7,
         "output_grid_size": [100, 100],
-        "initial_state_seed_type": "random",
-        "initial_state_seed_radius": 5,
+        "initial_state_seed_type": None,
+        "initial_state_seed_radius": None,
         "lower_bounds": [0, 0, 0, 0],
         "target_image_path": None,
         "lower_bounds": [0],
         "upper_bounds": [1],
-        "pad_mode": "circular",
+        "pad_mode": "zeros",
     }
 
     config_shared = {
-        "update_steps": 100,
-        "target_space": "embedding",  # pixel, embedding
-        "popsize": 32,
-        "generations": 5,
-        "sigma_init": 1,
-        "run_folder_path": "test",
+        # "target_space": "pixel",
+        # "target_space": "embedding",
+        # RD-specific losses
+        # "target_space": "spectral_entropy",
+        # "target_space": "dominant_wavelength",
+        # "target_space": "spectral_radial",
+        # "target_space": "edge_density",
+        # "target_space": "local_contrast",
+        # "target_space": "frequency_band_energy",
+        # "target_space": "skeleton_difference",
+        # "target_space": "distance_transform",
+        # "target_space": "orientation_variance",
+        "target_space": "fwd",
+        "fwd_wave": "haar",
+        "fwd_level": 2,
+        "fwd_log": True,
+        # Schelling-specific losses
+        # "target_space": "dissimilarity_index",  # works well with schelling and fails on RD
+        # "target_space": "boundary_length",
+        # "target_space": "average_cluster_size",
+        # "target_space": "moran_I",
+        #
+        "update_steps": 1000,
+        "visual_embedding": "clip",
+        "popsize": 4,
+        "generations": 4,
+        "sigma_init": 0.25,
         "anisotropic": False,
         "minmax_RD_output": False,
         "minmax_target_image": False,
         "early_stop": None,  # [15, 0.04],
         "disable_cma_bounds": False,
-        "negative": True,
-        "custom_embedding_processor": True,
-        "do_rescale": False,  # needed
-        "normalise": False,  # works either way
+        "negative": False,
+        "do_rescale": True,
+        # "wandb_mode": "online",
+        "wandb_mode": "offline",
+        # "run_name": "test",
+        "entity": "enajx",
     }
+    # config_shared["save_path"] = (
+    #     f"experiments_blastocyst_{config_shared['target_space']}_{time.time()}"
+    # )
+    config_shared["save_path"] = (
+        f"experiments_blastocyst/{config_shared['target_space']}/{datetime.now().strftime('%m-%d-%H-%M-%S')}"
+    )
 
-    config = {**config_shared, **config_RD}
+    # config = {**config_shared, **config_RD}
     # config = {**config_shared, **config_schelling}
+    config = {**config_shared, **config_blastocyst}
+
+    if config["wandb_mode"] != "disabled":
+        wandb.init(
+            project=f"Inverse_{config['system_name']}",
+            config=config,
+            allow_val_change=True,
+            mode=config["wandb_mode"],
+            entity=config["entity"],
+        )
+
+    config["run_folder_path"] = (
+        f"{config['save_path']}/test_{config['system_name']}_{config['target_space']}"
+    )
 
     # use pathlib to create experiment folder
     pathlib.Path(config["run_folder_path"]).mkdir(parents=True, exist_ok=True)
@@ -337,4 +545,10 @@ if __name__ == "__main__":
     with open(f"{config['run_folder_path']}/config.yaml", "w") as f:
         yaml.dump(config, f)
 
+    # Save config file to wandb
+    if config["wandb_mode"] != "disabled":
+        wandb.save(f"{config['run_folder_path']}/config.yaml")
+
     optimize_parameters_cmaes(config)
+
+    print(f"\nResults saved in {config['run_folder_path']}\n")

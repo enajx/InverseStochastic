@@ -29,3 +29,7 @@ src/experiments/exp olds/**
 visuals_paper/
 _archive/
 !data/RD_parameters.json
+test_*/*
+tests/*
+temp_*/*
+flowers/*

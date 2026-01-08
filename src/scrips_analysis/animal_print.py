@@ -112,8 +112,7 @@ def losses_computation(data, images_folder, output_folder, n_runs=10):
     target_image_embedding = make_embedding_clip(
         images=target_image.float(),
         model=CLIP_model,
-        processor=None,
-        normalise=False,
+        processor=CLIP_processor,
         do_rescale=True,
         device=device,
     )
@@ -134,8 +133,7 @@ def losses_computation(data, images_folder, output_folder, n_runs=10):
     runs_embeddings = make_embedding_clip(
         images=last_frames.float(),
         model=CLIP_model,
-        processor=None,
-        normalise=False,
+        processor=CLIP_processor,
         do_rescale=True,
         device=device,
     )
@@ -187,7 +185,12 @@ if __name__ == "__main__":
         {
             "key_name": "zebra",
             "image_filename": "zebra.png",
-            "parameters": np.array([[0.7491, 0.8091, 0.2424, 0.923, 0.079, 0.0296],],dtype=np.float64,),
+            "parameters": np.array(
+                [
+                    [0.7491, 0.8091, 0.2424, 0.923, 0.079, 0.0296],
+                ],
+                dtype=np.float64,
+            ),
             "grid_size": [50, 50],
             "anisotropic": True,
         },

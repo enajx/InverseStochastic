@@ -232,14 +232,21 @@ def get_RD_XY():
     Ys = []
     for d in selected:
         rd = RD_GPU(
-            param_batch=np.array([d["params_gray_scott"],],dtype=np.float64,),
+            param_batch=np.array(
+                [
+                    d["params_gray_scott"],
+                ],
+                dtype=np.float64,
+            ),
             seed=d["initial_state_seed_type"],
             seed_radius=d["initial_state_seed_radius"],
             grid_size=d["output_grid_size"],
             pad_mode=d["pad_mode"],
             anisotropic=False,
         )
-        x, _ = rd.run(d["update_steps"], save_all=False, show_progress=True, minimax_RD_output=False)
+        x, _ = rd.run(
+            d["update_steps"], save_all=False, show_progress=True, minimax_RD_output=False
+        )
 
         rd = RD_GPU(
             param_batch=np.array(
@@ -309,16 +316,14 @@ def distance_matrix(system, run=None):
     ex = make_embedding_clip(
         images=Xs.float(),
         model=CLIP_model,
-        processor=None,
-        normalise=False,
+        processor=CLIP_processor,
         do_rescale=True,
         device=device,
     )
     ey = make_embedding_clip(
         images=Ys.float(),
         model=CLIP_model,
-        processor=None,
-        normalise=False,
+        processor=CLIP_processor,
         do_rescale=True,
         device=device,
     )
@@ -391,9 +396,9 @@ if __name__ == "__main__":
     OUT_FOLDER = "visuals_paper/loss_matrixes"
     os.makedirs(OUT_FOLDER, exist_ok=True)
     LOSS_CMAP = "viridis_r"
-    
+
     for i in range(1):
         tag = f"{i}"
-        distance_matrix(system = 'RD', run = tag)
-        distance_matrix(system = 'SH', run = tag)
+        distance_matrix(system="RD", run=tag)
+        distance_matrix(system="SH", run=tag)
         distance_matrix(system="INV", run=tag)

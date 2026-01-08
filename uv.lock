@@ -305,6 +305,63 @@ wheels = [
 ]
 
 [[package]]
+name = "inverse-stochastic"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "agentpy" },
+    { name = "cma" },
+    { name = "einops" },
+    { name = "gitpython" },
+    { name = "h5py" },
+    { name = "imageio", extra = ["ffmpeg"] },
+    { name = "matplotlib" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "opencv-python" },
+    { name = "pandas" },
+    { name = "petname" },
+    { name = "pillow" },
+    { name = "pretty-errors" },
+    { name = "ptwt" },
+    { name = "pytorch-wavelets" },
+    { name = "pyvista" },
+    { name = "pywavelets" },
+    { name = "scikit-image" },
+    { name = "torch" },
+    { name = "torchvision" },
+    { name = "transformers" },
+    { name = "wandb" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agentpy", specifier = ">=0.1.5" },
+    { name = "cma", specifier = ">=4.0.0" },
+    { name = "einops", specifier = ">=0.8.1" },
+    { name = "gitpython", specifier = ">=3.1.44" },
+    { name = "h5py", specifier = ">=3.13.0" },
+    { name = "imageio", extras = ["ffmpeg"], specifier = ">=2.37.0" },
+    { name = "matplotlib", specifier = ">=3.10.1" },
+    { name = "numba", specifier = ">=0.61.2" },
+    { name = "numpy", specifier = ">=2.2.5" },
+    { name = "opencv-python", specifier = ">=4.11.0.86" },
+    { name = "pandas", specifier = ">=2.2.3" },
+    { name = "petname", specifier = ">=2.6" },
+    { name = "pillow", specifier = ">=11.2.1" },
+    { name = "pretty-errors", specifier = ">=1.2.25" },
+    { name = "ptwt", specifier = ">=1.0.0" },
+    { name = "pytorch-wavelets", specifier = ">=1.3.0" },
+    { name = "pyvista", specifier = ">=0.45.0" },
+    { name = "pywavelets", specifier = ">=1.8.0" },
+    { name = "scikit-image", specifier = ">=0.25.2" },
+    { name = "torch", specifier = ">=2.7.0" },
+    { name = "torchvision", specifier = ">=0.22.0" },
+    { name = "transformers", specifier = ">=4.51.3" },
+    { name = "wandb", specifier = ">=0.19.10" },
+]
+
+[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -812,6 +869,20 @@ wheels = [
 ]
 
 [[package]]
+name = "ptwt"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pywavelets" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/de/c838954e1861fb6cc05f72fbb7541c38bf03e9f26dd9ad80290f122586bf/ptwt-1.0.0.tar.gz", hash = "sha256:8b7ff3972e49c80898b2054071709e3f978be93aa17b26c0071b28ee74a46f79", size = 74384 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/38/790ec94006af2783b6f56226567f09cf118fb0ec5fdf4404ec4504229ff5/ptwt-1.0.0-py3-none-any.whl", hash = "sha256:afd31d49308ea1083782663f6a0d8d6ab0139bd8674f35800bd8576539dd231c", size = 67217 },
+]
+
+[[package]]
 name = "pydantic"
 version = "2.11.4"
 source = { registry = "https://pypi.org/simple" }
@@ -876,6 +947,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pytorch-wavelets"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "six" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3f/e3/1553046e97926b859edcab05d74b5b7543327c92b37c58919a3e49ff6151/pytorch_wavelets-1.3.0.tar.gz", hash = "sha256:8b5c63f87c2bb36e6b342a7bb294926bda5cd974614fb4848deab6ec2792f56f", size = 1029927 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/65/b7da80705dc679999ef77c06ded71e060d4ea14ed80111c104223e130cc1/pytorch_wavelets-1.3.0-py3-none-any.whl", hash = "sha256:e4f8635872370d8de640ef7548edef4ef60d5c565553c463210e939c7901ee69", size = 54879 },
+]
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
@@ -900,6 +985,30 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/72/db/05a4a4084c89723d8feaaaab913fd72d4382b960ebc94e60b47e5c5ced1e/pyvista-0.45.0.tar.gz", hash = "sha256:a0c950daad596bb0a73d7bd896c9fed7113046307ce3fe5dc383a4bb43cc1fae", size = 2360107 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/37/a5179f9fb7993754317d525236e7ef64f8f0e2c4c0f3ca9d503079ac5f62/pyvista-0.45.0-py3-none-any.whl", hash = "sha256:db11c1246c5f1a252dc5d83ec6491954ae7eae8b7b5b47c0cb8216c99c97bff0", size = 2409993 },
+]
+
+[[package]]
+name = "pywavelets"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/45/bfaaab38545a33a9f06c61211fc3bea2e23e8a8e00fedeb8e57feda722ff/pywavelets-1.8.0.tar.gz", hash = "sha256:f3800245754840adc143cbc29534a1b8fc4b8cff6e9d403326bd52b7bb5c35aa", size = 3935274 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/73/7ff347d77c6bda11330565050c3346c54bc210086380abeb84e402c1c9cd/pywavelets-1.8.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:441ba45c8dff8c6916dbe706958d0d7f91da675695ca0c0d75e483f6f52d0a12", size = 4321474 },
+    { url = "https://files.pythonhosted.org/packages/b0/70/c58937ebbca1aba3475ca5ee63c7bcebf09f3c93891ae5942eaec7e95707/pywavelets-1.8.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:24bb282bab09349d9d128ed0536fa50fff5c2147891971a69c2c36155dfeeeac", size = 4291502 },
+    { url = "https://files.pythonhosted.org/packages/da/55/87b4ad6128b2e85985908e958e856e0b680cdcc03cc490e2cc995164b13a/pywavelets-1.8.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:426ff3799446cb4da1db04c2084e6e58edfe24225596805665fd39c14f53dece", size = 4412669 },
+    { url = "https://files.pythonhosted.org/packages/bf/1a/bfca9eab23bd7b27843b0ce95c47796033a7b2c93048315f5fc5d6ac6428/pywavelets-1.8.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:aa0607a9c085b8285bc0d04e33d461a6c80f8c325389221ffb1a45141861138e", size = 4454604 },
+    { url = "https://files.pythonhosted.org/packages/c3/23/9ce38829f57159e812c469c4f9d7b5a16c1ba922c1802985e8c504468206/pywavelets-1.8.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:d31c36a39110e8fcc7b1a4a11cfed7d22b610c285d3e7f4fe73ec777aa49fa39", size = 4445507 },
+    { url = "https://files.pythonhosted.org/packages/e5/d2/e78a976b0600a6ef7a70f4430122d6ad11b3e1cbda3c8b3565661d094678/pywavelets-1.8.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:fa7c68ed1e5bab23b1bafe60ccbcf709b878652d03de59e961baefa5210fcd0a", size = 4479078 },
+    { url = "https://files.pythonhosted.org/packages/85/4d/1c4f870010368f3aeb0bdd72929376a1988e4a122e76545bd8c56e549c96/pywavelets-1.8.0-cp313-cp313-win32.whl", hash = "sha256:2c6b359b55d713ef683e9da1529181b865a80d759881ceb9adc1c5742e4da4d8", size = 4133763 },
+    { url = "https://files.pythonhosted.org/packages/c9/4f/0a709a5732e6cf9297fc87bf545cb879997cde204115f8c0cbc296c5bdd3/pywavelets-1.8.0-cp313-cp313-win_amd64.whl", hash = "sha256:4dbebcfd55ea8a85b7fc8802d411e75337170422abf6e96019d7e46c394e80e5", size = 4209548 },
+    { url = "https://files.pythonhosted.org/packages/de/2a/4cac0bba67d3bc0ad697d0680539864db0a6964c7ad953d8d9d887f360b3/pywavelets-1.8.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:2e1c79784bebeafd3715c1bea6621daa2e2e6ed37b687719322e2078fb35bb70", size = 4335183 },
+    { url = "https://files.pythonhosted.org/packages/58/d1/3abe4cf34a35b09ad847f0e9a85f340c1988611222926d295fa8710659e7/pywavelets-1.8.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7f489380c95013cc8fb3ef338f6d8c1a907125db453cc4dc739e2cca06fcd8b6", size = 4454723 },
+    { url = "https://files.pythonhosted.org/packages/d5/62/f05dd191232ae94e0b48509bb0ee65c9d45abf5e8f3612b09fd309b41384/pywavelets-1.8.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:06786201a91b5e74540f4f3c115c49a29190de2eb424823abbd3a1fd75ea3e28", size = 4472192 },
+    { url = "https://files.pythonhosted.org/packages/20/6a/257c95ad1e0fd395cbccd4ffec0d01cc9b51a3bb91e67d8fa10ffebc9c72/pywavelets-1.8.0-cp313-cp313t-win32.whl", hash = "sha256:f2877fb7b58c94211257dcf364b204d6ed259146fc87d5a90bf9d93c97af6226", size = 4183968 },
+    { url = "https://files.pythonhosted.org/packages/6c/58/7179fd6f87153f2e339171e8cfe9bf901398a89045eefd7a3911bb9b47ad/pywavelets-1.8.0-cp313-cp313t-win_amd64.whl", hash = "sha256:ec5d723c3335ff8aa630fd4b14097077f12cc02893c91cafd60dd7b1730e780f", size = 4265431 },
 ]
 
 [[package]]
@@ -955,55 +1064,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760", size = 131218 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6", size = 64928 },
-]
-
-[[package]]
-name = "reversingemergence"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "agentpy" },
-    { name = "cma" },
-    { name = "einops" },
-    { name = "gitpython" },
-    { name = "h5py" },
-    { name = "imageio", extra = ["ffmpeg"] },
-    { name = "matplotlib" },
-    { name = "numba" },
-    { name = "numpy" },
-    { name = "opencv-python" },
-    { name = "petname" },
-    { name = "pillow" },
-    { name = "pretty-errors" },
-    { name = "pyvista" },
-    { name = "scikit-image" },
-    { name = "torch" },
-    { name = "torchvision" },
-    { name = "transformers" },
-    { name = "wandb" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agentpy", specifier = ">=0.1.5" },
-    { name = "cma", specifier = ">=4.0.0" },
-    { name = "einops", specifier = ">=0.8.1" },
-    { name = "gitpython", specifier = ">=3.1.44" },
-    { name = "h5py", specifier = ">=3.13.0" },
-    { name = "imageio", extras = ["ffmpeg"], specifier = ">=2.37.0" },
-    { name = "matplotlib", specifier = ">=3.10.1" },
-    { name = "numba", specifier = ">=0.61.2" },
-    { name = "numpy", specifier = ">=2.2.5" },
-    { name = "opencv-python", specifier = ">=4.11.0.86" },
-    { name = "petname", specifier = ">=2.6" },
-    { name = "pillow", specifier = ">=11.2.1" },
-    { name = "pretty-errors", specifier = ">=1.2.25" },
-    { name = "pyvista", specifier = ">=0.45.0" },
-    { name = "scikit-image", specifier = ">=0.25.2" },
-    { name = "torch", specifier = ">=2.7.0" },
-    { name = "torchvision", specifier = ">=0.22.0" },
-    { name = "transformers", specifier = ">=4.51.3" },
-    { name = "wandb", specifier = ">=0.19.10" },
 ]
 
 [[package]]

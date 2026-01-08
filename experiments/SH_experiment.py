@@ -32,7 +32,6 @@ if __name__ == "__main__":
         "sigma_init": 0.1,
         "do_rescale": True,
         "normalise": False,
-        "custom_embedding_processor": True,
     }
 
     config["dev_mode"] = DEV_MODE
